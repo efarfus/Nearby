@@ -20,7 +20,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#257F49"
-      }
+      },
+      "package": "com.efarfus.approcketseat"
     },
     "web": {
       "bundler": "metro",
