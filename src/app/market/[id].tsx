@@ -1,7 +1,7 @@
-import { View, Text, Alert, Modal } from "react-native";
+import { View, Text, Alert, Modal, StatusBar, ScrollView } from "react-native";
 import { useLocalSearchParams, router, Redirect } from "expo-router";
 import { api } from "@/services/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loading } from "@/components/loading";
 import { Details, PropsDetails } from "@/components/market/details";
 import { Cover } from "@/components/market/cover";
@@ -18,9 +18,11 @@ export default function Market() {
   const [isLoading, setIsLoading] = useState(true);
   const [coupon, setCoupon] = useState<string | null>(null);
   const [isVisibleCameraModal, setIsVisibleCameraModal] = useState(false);
+  const [couponIsFetching, setCouponIsFetching] = useState(false);
 
   const [_, requestPermission] = useCameraPermissions();
   const params = useLocalSearchParams<{ id: string }>();
+  const qrLock = useRef(false);
 
   async function fetchMarket() {
     try {
@@ -45,6 +47,7 @@ export default function Market() {
       if (!granted) {
         return Alert.alert("Câmera", "Você precisa habilitar o uso da câmera");
       }
+      qrLock.current = false;
       setIsVisibleCameraModal(true);
     } catch (error) {
       console.log(error);
@@ -52,9 +55,39 @@ export default function Market() {
     }
   }
 
+  async function getCoupon(id: string) {
+    try {
+      setCouponIsFetching(true);
+
+      const { data } = await api.patch("/coupons/" + id);
+      Alert.alert("Cupom", data.coupon);
+      setCoupon(data.coupon);
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Erro", "Não foi possível utilizar o cupom");
+    } finally {
+      setCouponIsFetching(false);
+    }
+  }
+
+  function handleUseCoupon(id: string) {
+    setIsVisibleCameraModal(false);
+    Alert.alert(
+      "Cupom",
+      "Não é possível reutilizar um cupom resgatado. Deseja realmente resgatar o cupom?",
+      [
+        {
+          style: "cancel",
+          text: "Não",
+        },
+        { text: "Sim", onPress: () => getCoupon(id) },
+      ]
+    );
+  }
+
   useEffect(() => {
     fetchMarket();
-  }, [params.id]);
+  }, [params.id, coupon]);
 
   if (isLoading) {
     return <Loading></Loading>;
@@ -66,19 +99,39 @@ export default function Market() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Cover uri={data?.cover}></Cover>
-      <Details data={data}></Details>
-      {coupon && <Coupon code={coupon}></Coupon>}
+      <StatusBar
+        barStyle={"light-content"}
+        hidden={isVisibleCameraModal}
+      ></StatusBar>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Cover uri={data?.cover}></Cover>
+        <Details data={data}></Details>
+        {coupon && <Coupon code={coupon}></Coupon>}
+      </ScrollView>
       <View style={{ padding: 32 }}>
         <Button onPress={handleOpenCamera}>
           <Button.Title>Ler QR Code</Button.Title>
         </Button>
       </View>
-
+      {/* para ler um QRCode você precisa estar com u QRCode que contenha o ID do estabelecimento, por exemplo, use o consolelog params.id para receber o id do estabeleciento e gere um QRCode dele, assim a leitura funcionara  */}
       <Modal style={{ flex: 1 }} visible={isVisibleCameraModal}>
-        <CameraView style={{ flex: 1 }}></CameraView>
+        <CameraView
+          style={{ flex: 1 }}
+          facing="back"
+          onBarcodeScanned={({ data }) => {
+            if (data && !qrLock.current) {
+              qrLock.current = true;
+              setTimeout(() => {
+                handleUseCoupon(data), 500;
+              });
+            }
+          }}
+        ></CameraView>
         <View style={{ position: "absolute", bottom: 32, left: 32, right: 32 }}>
-          <Button onPress={() => setIsVisibleCameraModal(false)}>
+          <Button
+            onPress={() => setIsVisibleCameraModal(false)}
+            isLoading={couponIsFetching}
+          >
             <Button.Title>Voltar</Button.Title>
           </Button>
         </View>
