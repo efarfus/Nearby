@@ -3,6 +3,7 @@ import { IconArrowLeft } from "@tabler/icons-react-native";
 import { router, Router } from "expo-router";
 import { styles } from "./styles";
 import { Button } from "@/components/button";
+import { colors } from "@/styles/colors";
 
 type Props = {
   uri: string;
