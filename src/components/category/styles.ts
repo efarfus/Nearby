@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     justifyContent: "center",
+    borderColor: colors.gray[300],
     flexDirection: "row",
     alignItems:"center",
     paddingHorizontal: 12,
@@ -20,7 +21,8 @@ export const styles = StyleSheet.create({
   },
   containerSelected: {
     backgroundColor: colors.green.base,
-    borderWidth: 0,
+    borderColor: colors.green.base,
+    borderWidth: 1,
   },
   nameSelected: {
     color: colors.gray[100],
